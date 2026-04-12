@@ -60,7 +60,7 @@ export default function HomePage() {
           setUserId(session.user.id);
         }
 
-    const mySpace = (await getMyActiveSpace()) as RawSpaceData | null;
+        const mySpace = (await getMyActiveSpace()) as RawSpaceData | null;
 
         if (!mySpace) {
           if (isMounted) {
@@ -73,7 +73,6 @@ export default function HomePage() {
           space_id: mySpace.space_id,
           role: mySpace.role,
           status: mySpace.status,
-          // Supabase a veces devuelve un array para relaciones 1-1. Nos aseguramos de tomar el primero o null
           spaces: Array.isArray(mySpace.spaces)
             ? mySpace.spaces[0] ?? null
             : mySpace.spaces,
