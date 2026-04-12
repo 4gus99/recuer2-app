@@ -32,7 +32,7 @@ export default function LoginPage() {
 
         if (data.user) {
           setMessage(
-            "Cuenta creada. Si Supabase pide confirmación por mail, revisá tu correo. Si no, ya podés iniciar sesión."
+            "Cuenta creada, revisá tu mail lokita <3."
           );
         }
       } else {
