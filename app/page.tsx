@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getMyActiveSpace } from "@/lib/space";
+import { PhotoUploadSection } from "@/components/PhotoUploadSection";
 
 type FeedPost = {
   id: string;
@@ -390,6 +391,8 @@ export default function HomePage() {
             </button>
           </form>
         </section>
+
+        <PhotoUploadSection />
 
         {error ? (
           <div className="mb-6 rounded-2xl bg-red-100 p-4 text-red-700">
