@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getMyActiveSpace } from "@/lib/space";
@@ -31,6 +31,16 @@ type SpaceData = {
   spaces: SpaceInfo | null;
 };
 
+type FeedPostMediaInsert = {
+  post_id: string;
+  uploaded_by: string;
+  file_path: string;
+  caption: string | null;
+  sort_order: number;
+};
+
+const MAX_FILES = 10;
+
 export default function HomePage() {
   const router = useRouter();
 
@@ -38,6 +48,7 @@ export default function HomePage() {
   const [spaceData, setSpaceData] = useState<SpaceData | null>(null);
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [postText, setPostText] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [userId, setUserId] = useState("");
   const [error, setError] = useState("");
@@ -128,33 +139,154 @@ export default function HomePage() {
     router.refresh();
   }
 
+  function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+
+    if (files.length > MAX_FILES) {
+      setError(`Podés subir hasta ${MAX_FILES} imágenes por publicación.`);
+      setSelectedFiles(files.slice(0, MAX_FILES));
+      return;
+    }
+
+    setError("");
+    setSelectedFiles(files);
+  }
+
+  function buildStoragePath(params: {
+    userId: string;
+    postId: string;
+    file: File;
+    index: number;
+  }) {
+    const { userId, postId, file, index } = params;
+    const extension = file.name.includes(".")
+      ? file.name.split(".").pop()?.toLowerCase() ?? "jpg"
+      : "jpg";
+
+    const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
+    const uniquePart = `${Date.now()}-${index}-${crypto.randomUUID()}`;
+
+    return `${userId}/feed-posts/${postId}/${uniquePart}.${safeExtension}`;
+  }
+
+  async function uploadFilesForPost(postId: string) {
+    if (!selectedFiles.length || !userId) {
+      return [];
+    }
+
+    const uploadedPaths: string[] = [];
+
+    try {
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        const file = selectedFiles[index];
+        const filePath = buildStoragePath({
+          userId,
+          postId,
+          file,
+          index,
+        });
+
+        const { error: uploadError } = await supabase.storage
+          .from("photos")
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        uploadedPaths.push(filePath);
+      }
+
+      return uploadedPaths;
+    } catch (err) {
+      if (uploadedPaths.length > 0) {
+        await Promise.allSettled(
+          uploadedPaths.map((path) =>
+            supabase.storage.from("photos").remove([path])
+          )
+        );
+      }
+
+      throw err;
+    }
+  }
+
+  async function insertMediaRows(postId: string, uploadedPaths: string[]) {
+    if (!uploadedPaths.length || !userId) {
+      return;
+    }
+
+    const mediaRows: FeedPostMediaInsert[] = uploadedPaths.map((filePath, index) => ({
+      post_id: postId,
+      uploaded_by: userId,
+      file_path: filePath,
+      caption: null,
+      sort_order: index,
+    }));
+
+    const { error: mediaError } = await supabase
+      .from("feed_post_media")
+      .insert(mediaRows);
+
+    if (mediaError) {
+      await Promise.allSettled(
+        uploadedPaths.map((path) =>
+          supabase.storage.from("photos").remove([path])
+        )
+      );
+
+      throw new Error(mediaError.message);
+    }
+  }
+
   async function handleCreatePost(e: FormEvent) {
     e.preventDefault();
 
-    if (!spaceData || !postText.trim() || !userId) return;
+    const trimmedText = postText.trim();
+    const hasText = trimmedText.length > 0;
+    const hasFiles = selectedFiles.length > 0;
+
+    if (!spaceData || !userId || (!hasText && !hasFiles)) {
+      return;
+    }
 
     setPublishing(true);
     setError("");
 
+    let createdPost: FeedPost | null = null;
+
     try {
-      const { data, error } = await supabase
+      const { data, error: postError } = await supabase
         .from("feed_posts")
         .insert({
           space_id: spaceData.space_id,
           author_id: userId,
-          content: postText.trim(),
+          content: hasText ? trimmedText : null,
         })
         .select("id, content, created_at, author_id")
         .single();
 
-      if (error) {
-        setError(error.message);
+      if (postError) {
+        setError(postError.message);
         return;
       }
 
-      setPosts((prev) => [data, ...prev]);
+      createdPost = data;
+
+      const uploadedPaths = await uploadFilesForPost(createdPost.id);
+      await insertMediaRows(createdPost.id, uploadedPaths);
+
+      setPosts((prev) => [createdPost as FeedPost, ...prev]);
       setPostText("");
+      setSelectedFiles([]);
     } catch (err) {
+      if (createdPost) {
+        await supabase.from("feed_posts").delete().eq("id", createdPost.id);
+      }
+
       setError(err instanceof Error ? err.message : "Error inesperado");
     } finally {
       setPublishing(false);
@@ -222,9 +354,36 @@ export default function HomePage() {
               className="min-h-[120px] w-full rounded-2xl border border-[#dbcac2] px-4 py-3 outline-none focus:border-[#b8858f]"
             />
 
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">
+                Fotos de la publicación
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFilesChange}
+                className="block w-full rounded-xl border border-[#dbcac2] bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-[#f3e6e2] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[#7a565d]"
+              />
+
+              {selectedFiles.length > 0 ? (
+                <div className="rounded-2xl bg-[#f8f3ef] p-3 text-sm text-[#6f5b60]">
+                  <p className="font-medium">
+                    {selectedFiles.length} archivo(s) seleccionado(s)
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {selectedFiles.map((file, index) => (
+                      <li key={`${file.name}-${index}`}>{file.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+
             <button
               type="submit"
-              disabled={publishing || !postText.trim()}
+              disabled={publishing || (!postText.trim() && selectedFiles.length === 0)}
               className="rounded-xl bg-[#b9858b] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
             >
               {publishing ? "Publicando..." : "Publicar"}
