@@ -1,15 +1,25 @@
 "use client";
 
+import Image from "next/image";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getMyActiveSpace } from "@/lib/space";
+
+type FeedPostMedia = {
+  id: string;
+  file_path: string;
+  caption: string | null;
+  sort_order: number;
+  signed_url?: string | null;
+};
 
 type FeedPost = {
   id: string;
   content: string | null;
   created_at: string;
   author_id: string;
+  feed_post_media: FeedPostMedia[];
 };
 
 type SpaceInfo = {
@@ -95,7 +105,18 @@ export default function HomePage() {
 
         const { data: feedPosts, error: postsError } = await supabase
           .from("feed_posts")
-          .select("id, content, created_at, author_id")
+          .select(`
+            id,
+            content,
+            created_at,
+            author_id,
+            feed_post_media (
+              id,
+              file_path,
+              caption,
+              sort_order
+            )
+          `)
           .eq("space_id", normalizedSpace.space_id)
           .order("created_at", { ascending: false });
 
@@ -106,8 +127,10 @@ export default function HomePage() {
           return;
         }
 
+        const postsWithUrls = await attachSignedUrls(feedPosts ?? []);
+
         if (isMounted) {
-          setPosts(feedPosts ?? []);
+          setPosts(postsWithUrls);
         }
       } catch (err) {
         if (isMounted) {
@@ -126,6 +149,38 @@ export default function HomePage() {
       isMounted = false;
     };
   }, [router]);
+
+  async function attachSignedUrls(rawPosts: FeedPost[]) {
+    const hydratedPosts = await Promise.all(
+      rawPosts.map(async (post) => {
+        const media = Array.isArray(post.feed_post_media)
+          ? [...post.feed_post_media]
+          : [];
+
+        media.sort((a, b) => a.sort_order - b.sort_order);
+
+        const mediaWithUrls = await Promise.all(
+          media.map(async (item) => {
+            const { data, error } = await supabase.storage
+              .from("photos")
+              .createSignedUrl(item.file_path, 60 * 60);
+
+            return {
+              ...item,
+              signed_url: error ? null : data?.signedUrl ?? null,
+            };
+          })
+        );
+
+        return {
+          ...post,
+          feed_post_media: mediaWithUrls,
+        };
+      })
+    );
+
+    return hydratedPosts;
+  }
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut();
@@ -269,7 +324,18 @@ export default function HomePage() {
           author_id: userId,
           content: hasText ? trimmedText : null,
         })
-        .select("id, content, created_at, author_id")
+        .select(`
+          id,
+          content,
+          created_at,
+          author_id,
+          feed_post_media (
+            id,
+            file_path,
+            caption,
+            sort_order
+          )
+        `)
         .single();
 
       if (postError) {
@@ -277,12 +343,40 @@ export default function HomePage() {
         return;
       }
 
-      createdPost = data;
+      createdPost = {
+        ...data,
+        feed_post_media: Array.isArray(data.feed_post_media)
+          ? data.feed_post_media
+          : [],
+      };
 
       const uploadedPaths = await uploadFilesForPost(createdPost.id);
       await insertMediaRows(createdPost.id, uploadedPaths);
 
-      setPosts((prev) => [createdPost as FeedPost, ...prev]);
+      const postWithFreshMedia = await supabase
+        .from("feed_posts")
+        .select(`
+          id,
+          content,
+          created_at,
+          author_id,
+          feed_post_media (
+            id,
+            file_path,
+            caption,
+            sort_order
+          )
+        `)
+        .eq("id", createdPost.id)
+        .single();
+
+      if (postWithFreshMedia.error) {
+        throw new Error(postWithFreshMedia.error.message);
+      }
+
+      const hydratedPosts = await attachSignedUrls([postWithFreshMedia.data]);
+
+      setPosts((prev) => [hydratedPosts[0], ...prev]);
       setPostText("");
       setSelectedFiles([]);
     } catch (err) {
@@ -416,9 +510,34 @@ export default function HomePage() {
                 key={post.id}
                 className="rounded-3xl border border-[#eaded7] bg-white p-6 shadow-sm"
               >
-                <p className="mb-3 whitespace-pre-wrap text-base leading-7 text-[#3d2a2f]">
-                  {post.content}
-                </p>
+                {post.content ? (
+                  <p className="mb-3 whitespace-pre-wrap text-base leading-7 text-[#3d2a2f]">
+                    {post.content}
+                  </p>
+                ) : null}
+
+                {post.feed_post_media.length > 0 ? (
+                  <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {post.feed_post_media.map((media) =>
+                      media.signed_url ? (
+                        <div
+                          key={media.id}
+                          className="overflow-hidden rounded-2xl border border-[#eaded7]"
+                        >
+                          <div className="relative aspect-square w-full">
+                            <Image
+                              src={media.signed_url}
+                              alt={media.caption ?? "Foto de la publicación"}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                ) : null}
 
                 <time className="text-sm text-[#8a7177]">
                   {new Date(post.created_at).toLocaleString("es-AR")}
