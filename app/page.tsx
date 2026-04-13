@@ -1,74 +1,450 @@
 "use client";
 
-import Image from "next/image";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getMyActiveSpace } from "@/lib/space";
 
-type FeedPostMedia = {
-  id: string;
-  file_path: string;
-  caption: string | null;
-  sort_order: number;
-  signed_url?: string | null;
-};
-
-type FeedPost = {
-  id: string;
-  content: string | null;
-  created_at: string;
-  author_id: string;
-  feed_post_media: FeedPostMedia[];
-};
-
-type SpaceInfo = {
+type StoryItem = {
   id: string;
   name: string;
+  label?: string;
+  isAdd?: boolean;
+  gradient: string;
 };
 
-type RawSpaceData = {
-  space_id: string;
-  role: string;
-  status: string;
-  spaces: SpaceInfo | SpaceInfo[] | null;
+type PostItem = {
+  id: string;
+  author: string;
+  handle: string;
+  time: string;
+  avatarGradient: string;
+  text: string;
+  imageLabel: string;
+  imageMood: string;
+  likes: number;
+  comments: number;
+  saved?: boolean;
+  liked?: boolean;
 };
 
-type SpaceData = {
-  space_id: string;
-  role: string;
-  status: string;
-  spaces: SpaceInfo | null;
-};
+const stories: StoryItem[] = [
+  {
+    id: "s1",
+    name: "Tu historia",
+    label: "Agregar",
+    isAdd: true,
+    gradient: "from-[#ffb8d1] via-[#d89cff] to-[#8f7bff]",
+  },
+  {
+    id: "s2",
+    name: "Agus",
+    gradient: "from-[#ffb6c8] via-[#f093ff] to-[#7d6bff]",
+  },
+  {
+    id: "s3",
+    name: "Abril",
+    gradient: "from-[#ffd1b0] via-[#f4a4ff] to-[#8d7bff]",
+  },
+  {
+    id: "s4",
+    name: "Playa",
+    gradient: "from-[#ffcaaf] via-[#f7b0ff] to-[#6e7fff]",
+  },
+  {
+    id: "s5",
+    name: "Aniversario",
+    gradient: "from-[#ffc1dc] via-[#c7a2ff] to-[#8f76ff]",
+  },
+  {
+    id: "s6",
+    name: "Costa",
+    gradient: "from-[#ffd7c4] via-[#dca6ff] to-[#7c86ff]",
+  },
+];
 
-type FeedPostMediaInsert = {
-  post_id: string;
-  uploaded_by: string;
-  file_path: string;
-  caption: string | null;
-  sort_order: number;
-};
+const initialPosts: PostItem[] = [
+  {
+    id: "p1",
+    author: "Agus",
+    handle: "@nosotros",
+    time: "Hace 12 min",
+    avatarGradient: "from-[#ffb9cb] via-[#df9fff] to-[#8b7aff]",
+    text:
+      "Hoy me quedé pensando en lo lindo que es tener un lugar solo nuestro. Me gusta que incluso los días normales, con vos, se sienten especiales.",
+    imageLabel: "Atardecer juntos",
+    imageMood: "warm-sunset",
+    likes: 28,
+    comments: 6,
+    liked: true,
+    saved: true,
+  },
+  {
+    id: "p2",
+    author: "Abril",
+    handle: "@nuestroespacio",
+    time: "Hace 1 h",
+    avatarGradient: "from-[#ffd0b5] via-[#e7a0ff] to-[#7f82ff]",
+    text:
+      "Esa salida improvisada terminó siendo uno de mis planes favoritos. Café, charla larga y esa sensación de que no quería que se terminara nunca.",
+    imageLabel: "Salida improvisada",
+    imageMood: "city-night",
+    likes: 41,
+    comments: 9,
+    liked: false,
+    saved: false,
+  },
+  {
+    id: "p3",
+    author: "Agus",
+    handle: "@memorias",
+    time: "Ayer",
+    avatarGradient: "from-[#ffc1d8] via-[#cfa2ff] to-[#8089ff]",
+    text:
+      "Mini recap del fin de semana: música bajita, fotos borrosas lindas, comida rica y vos riéndote de mis chistes malos. Honestamente, plan perfecto.",
+    imageLabel: "Recuerdo del finde",
+    imageMood: "soft-memory",
+    likes: 57,
+    comments: 12,
+    liked: true,
+    saved: false,
+  },
+];
 
-const MAX_FILES = 10;
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function AppIconButton({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-[#f7eef7] backdrop-blur-md transition hover:bg-white/[0.1]",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StoryRing({ item }: { item: StoryItem }) {
+  return (
+    <div className="flex w-[84px] shrink-0 flex-col items-center">
+      <div
+        className={cn(
+          "rounded-full bg-gradient-to-br p-[2px] shadow-[0_0_28px_rgba(188,127,255,0.20)]",
+          item.gradient
+        )}
+      >
+        <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#120d18]">
+          <div
+            className={cn(
+              "relative flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full",
+              item.isAdd
+                ? "bg-[radial-gradient(circle_at_30%_30%,rgba(255,196,216,0.35),rgba(123,92,255,0.18),rgba(28,18,38,1))]"
+                : "bg-[radial-gradient(circle_at_30%_30%,rgba(255,196,216,0.28),rgba(129,102,255,0.22),rgba(28,18,38,1))]"
+            )}
+          >
+            {item.isAdd ? (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xl text-white">
+                +
+              </div>
+            ) : (
+              <span className="text-sm font-semibold text-[#fff5fb]">
+                {item.name.slice(0, 1)}
+              </span>
+            )}
+
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%)]" />
+          </div>
+        </div>
+      </div>
+
+      <span className="mt-2 line-clamp-1 text-center text-[11px] font-medium text-[#d8c8da]">
+        {item.label ?? item.name}
+      </span>
+    </div>
+  );
+}
+
+function MockPhoto({ mood, label }: { mood: string; label: string }) {
+  const moodClass =
+    mood === "warm-sunset"
+      ? "from-[#4a2030] via-[#8e4361] to-[#f0a16c]"
+      : mood === "city-night"
+      ? "from-[#1c1830] via-[#43316d] to-[#c78689]"
+      : "from-[#26192d] via-[#6a3f66] to-[#c59bbf]";
+
+  return (
+    <div className="relative overflow-hidden rounded-[26px] border border-white/10">
+      <div
+        className={cn(
+          "aspect-[4/5] w-full bg-gradient-to-br",
+          moodClass
+        )}
+      />
+
+      <div className="absolute inset-0">
+        <div className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_55%)]" />
+        <div className="absolute -left-10 bottom-8 h-40 w-40 rounded-full bg-[#ffd0c2]/15 blur-3xl" />
+        <div className="absolute right-0 top-10 h-32 w-32 rounded-full bg-[#d6a8ff]/20 blur-3xl" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/35 to-transparent" />
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-4 pb-4">
+        <div>
+          <p className="text-sm font-semibold text-[#fff7fb]">{label}</p>
+          <p className="mt-1 text-xs text-[#ead6e7]/85">Solo nosotros</p>
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] text-[#f4d8e9] backdrop-blur-md">
+          privado
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PostCard({ post }: { post: PostItem }) {
+  return (
+    <article className="rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(33,24,41,0.96),rgba(20,14,27,0.98))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={cn(
+              "rounded-full bg-gradient-to-br p-[2px]",
+              post.avatarGradient
+            )}
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#120d18]">
+              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),rgba(255,255,255,0.02))] text-sm font-semibold text-[#fff5fb]">
+                {post.author.slice(0, 1)}
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold text-[#fff7fb]">
+              {post.author}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-[#bcaebb]">
+              <span>{post.handle}</span>
+              <span className="h-1 w-1 rounded-full bg-[#7f7382]" />
+              <span>{post.time}</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.04] text-[#cabcca] transition hover:bg-white/[0.08]"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="5" r="1.8" />
+            <circle cx="12" cy="12" r="1.8" />
+            <circle cx="12" cy="19" r="1.8" />
+          </svg>
+        </button>
+      </div>
+
+      <p className="mb-4 text-[14.5px] leading-7 text-[#efe4ef]">{post.text}</p>
+
+      <MockPhoto mood={post.imageMood} label={post.imageLabel} />
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            className={cn(
+              "flex items-center gap-2 text-sm transition",
+              post.liked ? "text-[#ff9bbb]" : "text-[#d9c6d5]"
+            )}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill={post.liked ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M12 20.5s-7-4.35-9.5-8.19C.76 9.63 2.3 6 5.83 6c2.02 0 3.31 1.08 4.17 2.3C10.86 7.08 12.15 6 14.17 6 17.7 6 19.24 9.63 21.5 12.31 19 16.15 12 20.5 12 20.5Z" />
+            </svg>
+            <span>{post.likes}</span>
+          </button>
+
+          <button type="button" className="flex items-center gap-2 text-sm text-[#d9c6d5]">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M7 17.5H5a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8.7a2 2 0 0 1-2 2h-6.4L8 21v-3.5Z" />
+            </svg>
+            <span>{post.comments}</span>
+          </button>
+
+          <button type="button" className="text-[#d9c6d5]">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M21 4 11 14" />
+              <path d="M21 4 14.5 20l-3.9-6.1L4.5 10 21 4Z" />
+            </svg>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className={cn(
+            "transition",
+            post.saved ? "text-[#dca8ff]" : "text-[#d9c6d5]"
+          )}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill={post.saved ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-3.9L6 21V4.8Z" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="mt-3 text-xs text-[#ab9ead]">
+        <span className="font-medium text-[#f0e2ed]">{post.likes} Me gusta</span>
+        <span className="mx-2">·</span>
+        <span>{post.comments} comentarios</span>
+      </div>
+    </article>
+  );
+}
+
+function BottomNav() {
+  const items = [
+    { id: "home", label: "Inicio", active: true, icon: HomeIcon },
+    { id: "albums", label: "Álbumes", active: false, icon: GridIcon },
+    { id: "stories", label: "Historias", active: false, icon: PlayIcon },
+    { id: "memories", label: "Recuerdos", active: false, icon: HeartIcon },
+    { id: "profile", label: "Perfil", active: false, icon: UserIcon },
+  ];
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
+      <nav className="pointer-events-auto w-full max-w-[430px] rounded-[28px] border border-white/10 bg-[rgba(19,13,27,0.88)] px-3 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+        <ul className="grid grid-cols-5 gap-1">
+          {items.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex w-full flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2.5 transition",
+                    item.active
+                      ? "bg-[linear-gradient(180deg,rgba(255,184,211,0.18),rgba(185,133,255,0.14))] text-[#ffd7e8]"
+                      : "text-[#9f92a5] hover:bg-white/[0.04]"
+                  )}
+                >
+                  <Icon className="h-[19px] w-[19px]" />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
+  );
+}
+
+function HomeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M4 10.5 12 4l8 6.5" />
+      <path d="M6.5 9.5V20h11V9.5" />
+    </svg>
+  );
+}
+
+function GridIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <rect x="4" y="4" width="16" height="16" rx="5" />
+      <path d="m10 8.8 5.4 3.2L10 15.2V8.8Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M12 20.5s-7-4.35-9.5-8.19C.76 9.63 2.3 6 5.83 6c2.02 0 3.31 1.08 4.17 2.3C10.86 7.08 12.15 6 14.17 6 17.7 6 19.24 9.63 21.5 12.31 19 16.15 12 20.5 12 20.5Z" />
+    </svg>
+  );
+}
+
+function UserIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 19c1.8-3 4.3-4.5 7-4.5s5.2 1.5 7 4.5" />
+    </svg>
+  );
+}
 
 export default function HomePage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
-  const [spaceData, setSpaceData] = useState<SpaceData | null>(null);
-  const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [postText, setPostText] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [publishing, setPublishing] = useState(false);
-  const [userId, setUserId] = useState("");
-  const [error, setError] = useState("");
+  const [composerText, setComposerText] = useState("");
+  const [posts] = useState<PostItem[]>(initialPosts);
 
-  const currentSpace = useMemo(() => spaceData?.spaces ?? null, [spaceData]);
+  const activeStoryCount = useMemo(() => stories.length, []);
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
-    async function loadPage() {
+    async function checkSession() {
       try {
         const {
           data: { session },
@@ -78,358 +454,32 @@ export default function HomePage() {
           router.push("/login");
           return;
         }
-
-        if (isMounted) {
-          setUserId(session.user.id);
-        }
-
-        const mySpace = (await getMyActiveSpace()) as RawSpaceData | null;
-
-        if (!mySpace) {
-          if (isMounted) {
-            setError("No tenés un espacio activo todavía.");
-          }
-          return;
-        }
-
-        const normalizedSpace: SpaceData = {
-          space_id: mySpace.space_id,
-          role: mySpace.role,
-          status: mySpace.status,
-          spaces: Array.isArray(mySpace.spaces)
-            ? mySpace.spaces[0] ?? null
-            : mySpace.spaces,
-        };
-
-        if (isMounted) {
-          setSpaceData(normalizedSpace);
-        }
-
-        const { data: feedPosts, error: postsError } = await supabase
-          .from("feed_posts")
-          .select(`
-            id,
-            content,
-            created_at,
-            author_id,
-            feed_post_media (
-              id,
-              file_path,
-              caption,
-              sort_order
-            )
-          `)
-          .eq("space_id", normalizedSpace.space_id)
-          .order("created_at", { ascending: false });
-
-        if (postsError) {
-          if (isMounted) {
-            setError(postsError.message);
-          }
-          return;
-        }
-
-        const postsWithUrls = await attachSignedUrls(
-          (feedPosts ?? []) as FeedPost[]
-        );
-
-        if (isMounted) {
-          setPosts(postsWithUrls);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : "Error inesperado");
-        }
       } finally {
-        if (isMounted) {
+        if (mounted) {
           setLoading(false);
         }
       }
     }
 
-    loadPage();
+    checkSession();
 
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, [router]);
 
-  async function attachSignedUrls(rawPosts: FeedPost[]) {
-    const hydratedPosts = await Promise.all(
-      rawPosts.map(async (post) => {
-        const media = Array.isArray(post.feed_post_media)
-          ? [...post.feed_post_media]
-          : [];
-
-        media.sort((a, b) => a.sort_order - b.sort_order);
-
-        const mediaWithUrls = await Promise.all(
-          media.map(async (item) => {
-            const { data, error } = await supabase.storage
-              .from("photos")
-              .createSignedUrl(item.file_path, 60 * 60);
-
-            return {
-              ...item,
-              signed_url: error ? null : data?.signedUrl ?? null,
-            };
-          })
-        );
-
-        return {
-          ...post,
-          feed_post_media: mediaWithUrls,
-        };
-      })
-    );
-
-    return hydratedPosts;
-  }
-
   async function handleLogout() {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
+    await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   }
 
-  function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-
-    if (files.length > MAX_FILES) {
-      setError(`Podés subir hasta ${MAX_FILES} imágenes por publicación.`);
-      setSelectedFiles(files.slice(0, MAX_FILES));
-      return;
-    }
-
-    setError("");
-    setSelectedFiles(files);
-  }
-
-  function buildStoragePath(params: {
-    userId: string;
-    postId: string;
-    file: File;
-    index: number;
-  }) {
-    const { userId, postId, file, index } = params;
-
-    const extension = file.name.includes(".")
-      ? file.name.split(".").pop()?.toLowerCase() ?? "jpg"
-      : "jpg";
-
-    const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
-    const uniquePart = `${Date.now()}-${index}-${crypto.randomUUID()}`;
-
-    return `${userId}/feed-posts/${postId}/${uniquePart}.${safeExtension}`;
-  }
-
-  async function uploadFilesForPost(postId: string) {
-    if (!selectedFiles.length || !userId) {
-      return [];
-    }
-
-    const uploadedPaths: string[] = [];
-
-    try {
-      for (let index = 0; index < selectedFiles.length; index += 1) {
-        const file = selectedFiles[index];
-        const filePath = buildStoragePath({
-          userId,
-          postId,
-          file,
-          index,
-        });
-
-        const { error: uploadError } = await supabase.storage
-          .from("photos")
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw new Error(uploadError.message);
-        }
-
-        uploadedPaths.push(filePath);
-      }
-
-      return uploadedPaths;
-    } catch (err) {
-      if (uploadedPaths.length > 0) {
-        await Promise.allSettled(
-          uploadedPaths.map((path) =>
-            supabase.storage.from("photos").remove([path])
-          )
-        );
-      }
-
-      throw err;
-    }
-  }
-
-  async function insertMediaRows(postId: string, uploadedPaths: string[]) {
-    if (!uploadedPaths.length || !userId) {
-      return;
-    }
-
-    const mediaRows: FeedPostMediaInsert[] = uploadedPaths.map(
-      (filePath, index) => ({
-        post_id: postId,
-        uploaded_by: userId,
-        file_path: filePath,
-        caption: null,
-        sort_order: index,
-      })
-    );
-
-    const { error: mediaError } = await supabase
-      .from("feed_post_media")
-      .insert(mediaRows);
-
-    if (mediaError) {
-      await Promise.allSettled(
-        uploadedPaths.map((path) =>
-          supabase.storage.from("photos").remove([path])
-        )
-      );
-
-      throw new Error(mediaError.message);
-    }
-  }
-
-  async function handleCreatePost(e: FormEvent) {
-    e.preventDefault();
-
-    const trimmedText = postText.trim();
-    const hasText = trimmedText.length > 0;
-    const hasFiles = selectedFiles.length > 0;
-
-    if (!spaceData || !userId || (!hasText && !hasFiles)) {
-      return;
-    }
-
-    setPublishing(true);
-    setError("");
-
-    let createdPost: FeedPost | null = null;
-
-    try {
-      const { data, error: postError } = await supabase
-        .from("feed_posts")
-        .insert({
-          space_id: spaceData.space_id,
-          author_id: userId,
-          content: hasText ? trimmedText : null,
-        })
-        .select(`
-          id,
-          content,
-          created_at,
-          author_id,
-          feed_post_media (
-            id,
-            file_path,
-            caption,
-            sort_order
-          )
-        `)
-        .single();
-
-      if (postError) {
-        setError(postError.message);
-        return;
-      }
-
-      createdPost = {
-        ...data,
-        feed_post_media: Array.isArray(data.feed_post_media)
-          ? data.feed_post_media
-          : [],
-      } as FeedPost;
-
-      const uploadedPaths = await uploadFilesForPost(createdPost.id);
-      await insertMediaRows(createdPost.id, uploadedPaths);
-
-      const postWithFreshMedia = await supabase
-        .from("feed_posts")
-        .select(`
-          id,
-          content,
-          created_at,
-          author_id,
-          feed_post_media (
-            id,
-            file_path,
-            caption,
-            sort_order
-          )
-        `)
-        .eq("id", createdPost.id)
-        .single();
-
-      if (postWithFreshMedia.error) {
-        throw new Error(postWithFreshMedia.error.message);
-      }
-
-      const hydratedPosts = await attachSignedUrls([
-        postWithFreshMedia.data as FeedPost,
-      ]);
-
-      setPosts((prev) => [hydratedPosts[0], ...prev]);
-      setPostText("");
-      setSelectedFiles([]);
-    } catch (err) {
-      if (createdPost) {
-        await supabase.from("feed_posts").delete().eq("id", createdPost.id);
-      }
-
-      setError(err instanceof Error ? err.message : "Error inesperado");
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  function getGridClass(mediaCount: number) {
-    if (mediaCount === 1) return "grid-cols-1";
-    if (mediaCount === 2) return "grid-cols-2";
-    if (mediaCount === 3) return "grid-cols-2";
-    return "grid-cols-2";
-  }
-
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#fff8f7] text-[#2f2326]">
-        <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6">
-          <div className="rounded-full border border-[#f0dfe2] bg-white px-5 py-3 text-sm text-[#8a7177] shadow-sm">
-            Cargando feed...
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (!spaceData) {
-    return (
-      <main className="min-h-screen bg-[#fff8f7] text-[#2f2326]">
-        <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6">
-          <div className="w-full max-w-md rounded-[32px] border border-[#f0dfe2] bg-white p-8 text-center shadow-[0_20px_60px_rgba(61,42,47,0.08)]">
-            <p className="text-lg font-medium">
-              {error || "No tenés un espacio activo todavía."}
-            </p>
-
-            <button
-              onClick={() => router.push("/login")}
-              className="mt-5 rounded-2xl bg-[#b9858b] px-5 py-3 font-medium text-white transition hover:opacity-90"
-            >
-              Ir al login
-            </button>
+      <main className="min-h-screen bg-[#09060d] text-[#f7eef7]">
+        <div className="mx-auto flex min-h-screen max-w-[430px] items-center justify-center px-6">
+          <div className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-[#d7cad8] backdrop-blur-xl">
+            Cargando espacio...
           </div>
         </div>
       </main>
@@ -437,255 +487,152 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fff8f7] text-[#2f2326]">
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[34px] border border-[#f2e4e6] bg-white shadow-[0_24px_80px_rgba(61,42,47,0.08)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(244,220,225,0.80),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(248,233,226,0.90),transparent_35%)]" />
+    <main className="min-h-screen bg-[#09060d] text-[#f7eef7]">
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(71,40,91,0.55),transparent_34%),radial-gradient(circle_at_bottom,rgba(36,18,50,0.75),transparent_36%),linear-gradient(180deg,#09060d_0%,#0e0913_45%,#09060d_100%)]" />
+        <div className="absolute left-[-80px] top-[90px] h-56 w-56 rounded-full bg-[#a265ff]/10 blur-3xl" />
+        <div className="absolute right-[-60px] top-[200px] h-52 w-52 rounded-full bg-[#ff96c2]/10 blur-3xl" />
+        <div className="absolute bottom-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#8f7cff]/8 blur-3xl" />
+      </div>
 
-          <div className="relative z-10 grid gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:px-10 lg:py-10">
+      <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-4 pb-28 pt-4">
+        <header className="sticky top-0 z-30 -mx-1 mb-4 rounded-[28px] border border-white/8 bg-[rgba(17,12,24,0.72)] px-4 py-4 shadow-[0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="mb-3 text-[11px] uppercase tracking-[0.32em] text-[#a17880]">
-                Espacio privado
+              <p className="text-[11px] uppercase tracking-[0.26em] text-[#ae96b6]">
+                red social privada
               </p>
-
-              <h1 className="max-w-2xl text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#24191c] sm:text-5xl lg:text-6xl">
-                {currentSpace?.name ?? "Nuestro espacio"}
+              <h1 className="mt-2 text-[30px] font-semibold leading-none tracking-[-0.04em] text-[#fff7fb]">
+                Nuestro espacio
               </h1>
-
-              <p className="mt-5 max-w-xl text-sm leading-7 text-[#735e63] sm:text-base">
-                Un feed íntimo para publicar textos, fotos y recuerdos con una
-                estética suave, limpia y mucho más cuidada.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <div className="rounded-full border border-[#ead7db] bg-white/90 px-4 py-2 text-sm text-[#7c666b]">
-                  {posts.length} publicación(es)
-                </div>
-                <div className="rounded-full border border-[#ead7db] bg-white/90 px-4 py-2 text-sm capitalize text-[#7c666b]">
-                  {spaceData.status}
-                </div>
-              </div>
             </div>
 
-            <div className="flex flex-col justify-between gap-5 rounded-[28px] border border-white/70 bg-white/70 p-5 backdrop-blur">
-              <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-[#a17880]">
-                  Resumen
-                </p>
-
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl bg-[#fff7f5] p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[#9b7f86]">
-                      Nombre
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-[#2f2326]">
-                      {currentSpace?.name ?? "Nuestro espacio"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-[#fff7f5] p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[#9b7f86]">
-                      Estado
-                    </p>
-                    <p className="mt-2 text-lg font-semibold capitalize text-[#2f2326]">
-                      {spaceData.status}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <AppIconButton>
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3.2" />
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .9 1.7 1.7 0 0 0-.15.68V21a2 2 0 1 1-4 0v-.12A1.7 1.7 0 0 0 8.8 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.9-1 1.7 1.7 0 0 0-.68-.15H3a2 2 0 1 1 0-4h.12A1.7 1.7 0 0 0 4.6 8.8a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.8 4.6a1.7 1.7 0 0 0 1-.9 1.7 1.7 0 0 0 .15-.68V3a2 2 0 1 1 4 0v.12A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.8a1.7 1.7 0 0 0 .9 1 1.7 1.7 0 0 0 .68.15H21a2 2 0 1 1 0 4h-.12a1.7 1.7 0 0 0-1.48 1.05Z" />
+                </svg>
+              </AppIconButton>
 
               <button
+                type="button"
                 onClick={handleLogout}
-                className="rounded-2xl bg-[#b9858b] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(185,133,139,0.28)] transition hover:-translate-y-0.5 hover:opacity-95"
+                className="rounded-2xl border border-white/8 bg-white/[0.05] px-3.5 py-3 text-xs font-medium text-[#ead6e7] backdrop-blur-md transition hover:bg-white/[0.08]"
               >
-                Cerrar sesión
+                Salir
               </button>
             </div>
           </div>
+        </header>
+
+        <section className="mb-5">
+          <div className="mb-3 flex items-center justify-between px-1">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[#fff3fa]">
+                Historias
+              </h2>
+              <p className="mt-1 text-[12px] text-[#9f92a5]">
+                {activeStoryCount} momentos recientes
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="text-[12px] font-medium text-[#d7b2ff]"
+            >
+              Ver todo
+            </button>
+          </div>
+
+          <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+            {stories.map((story) => (
+              <StoryRing key={story.id} item={story} />
+            ))}
+          </div>
         </section>
 
-        {error ? (
-          <div className="mt-6 rounded-[24px] border border-red-200 bg-red-50 px-5 py-4 text-red-700 shadow-sm">
-            {error}
+        <section className="mb-5 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(28,20,36,0.96),rgba(18,13,25,0.98))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-full bg-gradient-to-br from-[#ffb9cb] via-[#d89cff] to-[#8a7bff] p-[2px]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#120d18]">
+                <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),rgba(255,255,255,0.02))] text-sm font-semibold text-[#fff5fb]">
+                  A
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-[#fff7fb]">Agus</p>
+              <p className="text-xs text-[#a99baa]">Compartí algo íntimo</p>
+            </div>
           </div>
-        ) : null}
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-          <section className="lg:sticky lg:top-6 lg:self-start">
-            <div className="overflow-hidden rounded-[30px] border border-[#f0dfe2] bg-white shadow-[0_20px_70px_rgba(61,42,47,0.07)]">
-              <div className="border-b border-[#f4e7e8] px-6 py-5">
-                <p className="text-xs uppercase tracking-[0.24em] text-[#a17880]">
-                  Composer
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#24191c]">
-                  Crear publicación
-                </h2>
-              </div>
+          <div className="rounded-[22px] border border-white/8 bg-white/[0.04] p-3 shadow-inner shadow-black/20">
+            <textarea
+              value={composerText}
+              onChange={(e) => setComposerText(e.target.value)}
+              placeholder="¿Qué querés compartir hoy?"
+              className="min-h-[106px] w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-7 text-[#f3eaf2] outline-none placeholder:text-[#8f828f]"
+            />
+          </div>
 
-              <form onSubmit={handleCreatePost} className="space-y-5 p-6">
-                <div className="rounded-[26px] border border-[#f0e1e3] bg-[#fffaf9] p-3">
-                  <textarea
-                    value={postText}
-                    onChange={(e) => setPostText(e.target.value)}
-                    placeholder="¿Qué querés compartir hoy?"
-                    className="min-h-[150px] w-full resize-none bg-transparent px-3 py-2 text-[15px] leading-7 text-[#2f2326] outline-none placeholder:text-[#a38f94]"
-                  />
-                </div>
-
-                <div className="rounded-[26px] border border-[#f0e1e3] bg-[#fffaf9] p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <label className="text-sm font-medium text-[#5e494f]">
-                      Fotos de la publicación
-                    </label>
-
-                    <span className="rounded-full bg-white px-3 py-1 text-xs text-[#8a7177]">
-                      Hasta {MAX_FILES}
-                    </span>
-                  </div>
-
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFilesChange}
-                    className="block w-full rounded-2xl border border-[#e3d3d6] bg-white px-4 py-3 text-sm text-[#5c454a] file:mr-4 file:rounded-xl file:border-0 file:bg-[#f3e2de] file:px-4 file:py-2.5 file:font-medium file:text-[#7a565d] hover:file:opacity-90"
-                  />
-
-                  {selectedFiles.length > 0 ? (
-                    <div className="mt-4 rounded-2xl border border-[#efe1e3] bg-white p-3">
-                      <p className="mb-2 text-sm font-medium text-[#5b464c]">
-                        {selectedFiles.length} archivo(s) seleccionado(s)
-                      </p>
-
-                      <div className="flex flex-wrap gap-2">
-                        {selectedFiles.map((file, index) => (
-                          <span
-                            key={`${file.name}-${index}`}
-                            className="rounded-full border border-[#eaded7] bg-[#fcf8f6] px-3 py-1.5 text-xs text-[#7a656a]"
-                          >
-                            {file.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <p className="max-w-xs text-xs leading-6 text-[#8a7177]">
-                    Podés publicar solo texto, solo imágenes o ambas cosas.
-                  </p>
-
-                  <button
-                    type="submit"
-                    disabled={
-                      publishing ||
-                      (!postText.trim() && selectedFiles.length === 0)
-                    }
-                    className="rounded-[20px] bg-[#b9858b] px-6 py-3 font-semibold text-white shadow-[0_14px_30px_rgba(185,133,139,0.28)] transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {publishing ? "Publicando..." : "Publicar"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-[#a17880]">
-                  Feed
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#24191c]">
-                  Últimas publicaciones
-                </h2>
-              </div>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d7c8d6]"
+              >
+                Foto
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d7c8d6]"
+              >
+                Álbum
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d7c8d6]"
+              >
+                Historia
+              </button>
             </div>
 
-            <div className="space-y-6">
-              {posts.length === 0 ? (
-                <article className="rounded-[30px] border border-[#f0dfe2] bg-white p-8 shadow-[0_20px_60px_rgba(61,42,47,0.06)]">
-                  <p className="text-base text-[#6f5b60]">
-                    Todavía no hay publicaciones. Creá la primera.
-                  </p>
-                </article>
-              ) : (
-                posts.map((post, index) => (
-                  <article
-                    key={post.id}
-                    className="overflow-hidden rounded-[30px] border border-[#f0dfe2] bg-white shadow-[0_20px_60px_rgba(61,42,47,0.06)]"
-                  >
-                    <div className="border-b border-[#f7eaec] px-5 py-4 sm:px-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-semibold text-[#2f2326]">
-                            {currentSpace?.name ?? "Nuestro espacio"}
-                          </p>
-                          <p className="mt-1 text-xs text-[#8a7177]">
-                            {new Date(post.created_at).toLocaleString("es-AR")}
-                          </p>
-                        </div>
+            <button
+              type="button"
+              className="rounded-[18px] bg-[linear-gradient(135deg,#d596b6,#9e79ff)] px-4 py-2.5 text-sm font-semibold text-[#140d18] shadow-[0_12px_30px_rgba(189,127,255,0.28)] transition hover:brightness-105"
+            >
+              Publicar
+            </button>
+          </div>
+        </section>
 
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full border border-[#eaded7] bg-[#fcf8f6] px-3 py-1.5 text-xs text-[#8a7177]">
-                            Privado
-                          </span>
-                          <span className="hidden rounded-full bg-[#f8ece8] px-3 py-1.5 text-xs text-[#9a767d] sm:inline-block">
-                            #{posts.length - index}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+        <section className="flex-1">
+          <div className="mb-4 px-1">
+            <h2 className="text-[15px] font-semibold text-[#fff3fa]">Feed</h2>
+            <p className="mt-1 text-[12px] text-[#9f92a5]">
+              Tus momentos compartidos
+            </p>
+          </div>
 
-                    <div className="px-5 py-5 sm:px-6">
-                      {post.content ? (
-                        <p className="mb-5 whitespace-pre-wrap text-[15px] leading-8 text-[#3b2b30] sm:text-base">
-                          {post.content}
-                        </p>
-                      ) : null}
-
-                      {post.feed_post_media.length > 0 ? (
-                        <div
-                          className={`grid gap-3 ${getGridClass(
-                            post.feed_post_media.length
-                          )}`}
-                        >
-                          {post.feed_post_media.map((media, mediaIndex) =>
-                            media.signed_url ? (
-                              <div
-                                key={media.id}
-                                className={`group overflow-hidden rounded-[24px] bg-[#f8f3ef] ${
-                                  post.feed_post_media.length === 3 &&
-                                  mediaIndex === 0
-                                    ? "col-span-2"
-                                    : ""
-                                }`}
-                              >
-                                <div className="relative aspect-square w-full">
-                                  <Image
-                                    src={media.signed_url}
-                                    alt={
-                                      media.caption ?? "Foto de la publicación"
-                                    }
-                                    fill
-                                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                                    unoptimized
-                                  />
-                                </div>
-                              </div>
-                            ) : null
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
+          <div className="space-y-5">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </section>
       </div>
+
+      <BottomNav />
     </main>
   );
 }
