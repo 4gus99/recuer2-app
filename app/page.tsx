@@ -441,6 +441,10 @@ export default function HomePage() {
                 Red social privada
               </p>
 
+              <p className="rounded-xl bg-red-500 p-3 font-bold text-white">
+                TEST PREMIUM NUEVO
+              </p>
+
               <h1 className="text-4xl font-semibold leading-[0.95] tracking-[-0.03em] text-[#2f2326] sm:text-5xl md:text-6xl">
                 {currentSpace?.name ?? "Nuestro espacio"}
               </h1>
