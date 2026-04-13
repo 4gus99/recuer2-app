@@ -4,109 +4,64 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type StoryItem = {
+type Story = {
   id: string;
   name: string;
-  label?: string;
-  isAdd?: boolean;
-  gradient: string;
+  active?: boolean;
+  seen?: boolean;
+  own?: boolean;
 };
 
-type PostItem = {
+type Post = {
   id: string;
   author: string;
-  handle: string;
   time: string;
-  avatarGradient: string;
   text: string;
-  imageLabel: string;
-  imageMood: string;
   likes: number;
   comments: number;
-  saved?: boolean;
-  liked?: boolean;
+  avatarSeed: string;
+  imageVariant: "beach" | "dinner" | "memory";
 };
 
-const stories: StoryItem[] = [
-  {
-    id: "s1",
-    name: "Tu historia",
-    label: "Agregar",
-    isAdd: true,
-    gradient: "from-[#ffb8d1] via-[#d89cff] to-[#8f7bff]",
-  },
-  {
-    id: "s2",
-    name: "Agus",
-    gradient: "from-[#ffb6c8] via-[#f093ff] to-[#7d6bff]",
-  },
-  {
-    id: "s3",
-    name: "Abril",
-    gradient: "from-[#ffd1b0] via-[#f4a4ff] to-[#8d7bff]",
-  },
-  {
-    id: "s4",
-    name: "Playa",
-    gradient: "from-[#ffcaaf] via-[#f7b0ff] to-[#6e7fff]",
-  },
-  {
-    id: "s5",
-    name: "Aniversario",
-    gradient: "from-[#ffc1dc] via-[#c7a2ff] to-[#8f76ff]",
-  },
-  {
-    id: "s6",
-    name: "Costa",
-    gradient: "from-[#ffd7c4] via-[#dca6ff] to-[#7c86ff]",
-  },
+const storiesMock: Story[] = [
+  { id: "1", name: "Tu historia", own: true, active: true },
+  { id: "2", name: "Agus", active: true },
+  { id: "3", name: "Abril", active: true },
+  { id: "4", name: "Playa", seen: true },
+  { id: "5", name: "Aniversario", active: true },
+  { id: "6", name: "Costa", seen: true },
 ];
 
-const initialPosts: PostItem[] = [
+const postsMock: Post[] = [
   {
     id: "p1",
     author: "Agus",
-    handle: "@nosotros",
-    time: "Hace 12 min",
-    avatarGradient: "from-[#ffb9cb] via-[#df9fff] to-[#8b7aff]",
-    text:
-      "Hoy me quedé pensando en lo lindo que es tener un lugar solo nuestro. Me gusta que incluso los días normales, con vos, se sienten especiales.",
-    imageLabel: "Atardecer juntos",
-    imageMood: "warm-sunset",
-    likes: 28,
-    comments: 6,
-    liked: true,
-    saved: true,
+    time: "Hace 23 min",
+    text: "Hoy pensé en lo hermoso que es tener un lugar solo nuestro. Sin ruido, sin nadie más. Solo vos, yo y todos estos momentos que quiero guardar para siempre 💗",
+    likes: 18,
+    comments: 4,
+    avatarSeed: "A",
+    imageVariant: "beach",
   },
   {
     id: "p2",
     author: "Abril",
-    handle: "@nuestroespacio",
-    time: "Hace 1 h",
-    avatarGradient: "from-[#ffd0b5] via-[#e7a0ff] to-[#7f82ff]",
-    text:
-      "Esa salida improvisada terminó siendo uno de mis planes favoritos. Café, charla larga y esa sensación de que no quería que se terminara nunca.",
-    imageLabel: "Salida improvisada",
-    imageMood: "city-night",
-    likes: 41,
-    comments: 9,
-    liked: false,
-    saved: false,
+    time: "Hace 2 h",
+    text: "Qué lindo fue salir sin plan, comer algo rico y terminar riéndonos por cualquier cosa. Me encantan estos días simples con vos.",
+    likes: 26,
+    comments: 7,
+    avatarSeed: "B",
+    imageVariant: "dinner",
   },
   {
     id: "p3",
     author: "Agus",
-    handle: "@memorias",
     time: "Ayer",
-    avatarGradient: "from-[#ffc1d8] via-[#cfa2ff] to-[#8089ff]",
-    text:
-      "Mini recap del fin de semana: música bajita, fotos borrosas lindas, comida rica y vos riéndote de mis chistes malos. Honestamente, plan perfecto.",
-    imageLabel: "Recuerdo del finde",
-    imageMood: "soft-memory",
-    likes: 57,
-    comments: 12,
-    liked: true,
-    saved: false,
+    text: "Mini recap del finde: música bajita, fotos lindas, tu sonrisa y esa paz rara que solo aparece cuando estoy con vos.",
+    likes: 31,
+    comments: 6,
+    avatarSeed: "A",
+    imageVariant: "memory",
   },
 ];
 
@@ -114,7 +69,67 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function AppIconButton({
+function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="min-h-screen bg-[#09070d] text-[#f7f1f7]">
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(98,54,122,0.28),transparent_30%),radial-gradient(circle_at_bottom,rgba(42,20,58,0.35),transparent_35%),linear-gradient(180deg,#09070d_0%,#0b0810_45%,#08060c_100%)]" />
+        <div className="absolute left-[-70px] top-[120px] h-56 w-56 rounded-full bg-[#d18cff]/10 blur-3xl" />
+        <div className="absolute right-[-40px] top-[260px] h-52 w-52 rounded-full bg-[#ff93ba]/10 blur-3xl" />
+        <div className="absolute bottom-16 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#8e7cff]/10 blur-3xl" />
+      </div>
+
+      <div className="mx-auto min-h-screen w-full max-w-[430px] px-4 pb-28 pt-3">
+        {children}
+      </div>
+    </main>
+  );
+}
+
+function StoryAvatar({
+  name,
+  active,
+  seen,
+  own,
+}: {
+  name: string;
+  active?: boolean;
+  seen?: boolean;
+  own?: boolean;
+}) {
+  return (
+    <div className="flex w-[84px] shrink-0 flex-col items-center">
+      <div
+        className={cn(
+          "rounded-full p-[2px]",
+          active
+            ? "bg-[linear-gradient(135deg,#ff8fb8_0%,#c992ff_52%,#7d87ff_100%)] shadow-[0_0_24px_rgba(201,146,255,0.22)]"
+            : seen
+            ? "bg-white/15"
+            : "bg-[linear-gradient(135deg,#ffb3cf_0%,#caa2ff_55%,#8b95ff_100%)]"
+        )}
+      >
+        <div className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#120e17]">
+          <div className="flex h-[64px] w-[64px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),rgba(255,255,255,0.02)),linear-gradient(180deg,rgba(46,32,56,1),rgba(23,17,30,1))] text-sm font-semibold text-[#fff5fb]">
+            {own ? "+" : name.slice(0, 1)}
+          </div>
+
+          {own ? (
+            <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border border-[#120e17] bg-[linear-gradient(135deg,#ff9dbe,#bb8fff)] text-[12px] font-bold text-[#170f1d]">
+              +
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <span className="mt-2 line-clamp-1 text-center text-[11px] font-medium text-[#d4c6d8]">
+        {name}
+      </span>
+    </div>
+  );
+}
+
+function IconButton({
   children,
   className,
 }: {
@@ -125,7 +140,7 @@ function AppIconButton({
     <button
       type="button"
       className={cn(
-        "flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-[#f7eef7] backdrop-blur-md transition hover:bg-white/[0.1]",
+        "flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e8ddea] backdrop-blur-md transition hover:bg-white/[0.08]",
         className
       )}
     >
@@ -134,77 +149,31 @@ function AppIconButton({
   );
 }
 
-function StoryRing({ item }: { item: StoryItem }) {
-  return (
-    <div className="flex w-[84px] shrink-0 flex-col items-center">
-      <div
-        className={cn(
-          "rounded-full bg-gradient-to-br p-[2px] shadow-[0_0_28px_rgba(188,127,255,0.20)]",
-          item.gradient
-        )}
-      >
-        <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#120d18]">
-          <div
-            className={cn(
-              "relative flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full",
-              item.isAdd
-                ? "bg-[radial-gradient(circle_at_30%_30%,rgba(255,196,216,0.35),rgba(123,92,255,0.18),rgba(28,18,38,1))]"
-                : "bg-[radial-gradient(circle_at_30%_30%,rgba(255,196,216,0.28),rgba(129,102,255,0.22),rgba(28,18,38,1))]"
-            )}
-          >
-            {item.isAdd ? (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xl text-white">
-                +
-              </div>
-            ) : (
-              <span className="text-sm font-semibold text-[#fff5fb]">
-                {item.name.slice(0, 1)}
-              </span>
-            )}
-
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%)]" />
-          </div>
-        </div>
-      </div>
-
-      <span className="mt-2 line-clamp-1 text-center text-[11px] font-medium text-[#d8c8da]">
-        {item.label ?? item.name}
-      </span>
-    </div>
-  );
-}
-
-function MockPhoto({ mood, label }: { mood: string; label: string }) {
-  const moodClass =
-    mood === "warm-sunset"
-      ? "from-[#4a2030] via-[#8e4361] to-[#f0a16c]"
-      : mood === "city-night"
-      ? "from-[#1c1830] via-[#43316d] to-[#c78689]"
-      : "from-[#26192d] via-[#6a3f66] to-[#c59bbf]";
+function MockImage({ variant }: { variant: Post["imageVariant"] }) {
+  const bg =
+    variant === "beach"
+      ? "from-[#2a1830] via-[#8a536d] to-[#efb07f]"
+      : variant === "dinner"
+      ? "from-[#1c1424] via-[#4f3158] to-[#d59687]"
+      : "from-[#1d1524] via-[#6c4267] to-[#c6a0bf]";
 
   return (
-    <div className="relative overflow-hidden rounded-[26px] border border-white/10">
-      <div
-        className={cn(
-          "aspect-[4/5] w-full bg-gradient-to-br",
-          moodClass
-        )}
-      />
+    <div className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[#130f19]">
+      <div className={cn("aspect-[4/5] w-full bg-gradient-to-br", bg)} />
 
       <div className="absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_55%)]" />
-        <div className="absolute -left-10 bottom-8 h-40 w-40 rounded-full bg-[#ffd0c2]/15 blur-3xl" />
-        <div className="absolute right-0 top-10 h-32 w-32 rounded-full bg-[#d6a8ff]/20 blur-3xl" />
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/35 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.22),transparent_55%)]" />
+        <div className="absolute left-0 top-0 h-full w-full bg-[linear-gradient(180deg,transparent_0%,transparent_55%,rgba(0,0,0,0.28)_100%)]" />
+        <div className="absolute -left-8 bottom-8 h-36 w-36 rounded-full bg-[#ffd0bf]/15 blur-3xl" />
+        <div className="absolute right-4 top-12 h-24 w-24 rounded-full bg-[#d7a2ff]/16 blur-3xl" />
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between px-4 pb-4">
-        <div>
-          <p className="text-sm font-semibold text-[#fff7fb]">{label}</p>
-          <p className="mt-1 text-xs text-[#ead6e7]/85">Solo nosotros</p>
+      <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+        <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] text-[#f5dbe8] backdrop-blur-md">
+          Solo nosotros
         </div>
 
-        <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] text-[#f4d8e9] backdrop-blur-md">
+        <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] text-[#eadce9] backdrop-blur-md">
           privado
         </div>
       </div>
@@ -212,137 +181,65 @@ function MockPhoto({ mood, label }: { mood: string; label: string }) {
   );
 }
 
-function PostCard({ post }: { post: PostItem }) {
+function PostCard({ post }: { post: Post }) {
   return (
-    <article className="rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(33,24,41,0.96),rgba(20,14,27,0.98))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className={cn(
-              "rounded-full bg-gradient-to-br p-[2px]",
-              post.avatarGradient
-            )}
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#120d18]">
-              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),rgba(255,255,255,0.02))] text-sm font-semibold text-[#fff5fb]">
-                {post.author.slice(0, 1)}
+    <article className="overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(23,17,30,0.96),rgba(15,11,20,0.98))] shadow-[0_18px_50px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+      <div className="px-4 pb-4 pt-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="rounded-full bg-[linear-gradient(135deg,#ff96bf_0%,#ca96ff_52%,#7f89ff_100%)] p-[2px]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#120e17]">
+                <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),rgba(255,255,255,0.02)),linear-gradient(180deg,rgba(46,32,56,1),rgba(23,17,30,1))] text-sm font-semibold text-[#fff5fb]">
+                  {post.avatarSeed}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-semibold text-[#fff7fb]">
-              {post.author}
-            </p>
-            <div className="flex items-center gap-2 text-xs text-[#bcaebb]">
-              <span>{post.handle}</span>
-              <span className="h-1 w-1 rounded-full bg-[#7f7382]" />
-              <span>{post.time}</span>
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold text-[#fff7fb]">
+                {post.author}
+              </p>
+              <p className="truncate text-xs text-[#a99bab]">{post.time}</p>
             </div>
           </div>
-        </div>
 
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.04] text-[#cabcca] transition hover:bg-white/[0.08]"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="5" r="1.8" />
-            <circle cx="12" cy="12" r="1.8" />
-            <circle cx="12" cy="19" r="1.8" />
-          </svg>
-        </button>
-      </div>
-
-      <p className="mb-4 text-[14.5px] leading-7 text-[#efe4ef]">{post.text}</p>
-
-      <MockPhoto mood={post.imageMood} label={post.imageLabel} />
-
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
           <button
             type="button"
-            className={cn(
-              "flex items-center gap-2 text-sm transition",
-              post.liked ? "text-[#ff9bbb]" : "text-[#d9c6d5]"
-            )}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#b7aabc] transition hover:bg-white/[0.05]"
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill={post.liked ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="M12 20.5s-7-4.35-9.5-8.19C.76 9.63 2.3 6 5.83 6c2.02 0 3.31 1.08 4.17 2.3C10.86 7.08 12.15 6 14.17 6 17.7 6 19.24 9.63 21.5 12.31 19 16.15 12 20.5 12 20.5Z" />
-            </svg>
-            <span>{post.likes}</span>
-          </button>
-
-          <button type="button" className="flex items-center gap-2 text-sm text-[#d9c6d5]">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="M7 17.5H5a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8.7a2 2 0 0 1-2 2h-6.4L8 21v-3.5Z" />
-            </svg>
-            <span>{post.comments}</span>
-          </button>
-
-          <button type="button" className="text-[#d9c6d5]">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="M21 4 11 14" />
-              <path d="M21 4 14.5 20l-3.9-6.1L4.5 10 21 4Z" />
-            </svg>
+            <DotsIcon />
           </button>
         </div>
 
-        <button
-          type="button"
-          className={cn(
-            "transition",
-            post.saved ? "text-[#dca8ff]" : "text-[#d9c6d5]"
-          )}
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill={post.saved ? "currentColor" : "none"}
-            stroke="currentColor"
-            strokeWidth="1.8"
-            aria-hidden="true"
-          >
-            <path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-3.9L6 21V4.8Z" />
-          </svg>
-        </button>
-      </div>
+        <p className="mb-4 text-[14.5px] leading-7 text-[#f0e5ef]">{post.text}</p>
 
-      <div className="mt-3 text-xs text-[#ab9ead]">
-        <span className="font-medium text-[#f0e2ed]">{post.likes} Me gusta</span>
-        <span className="mx-2">·</span>
-        <span>{post.comments} comentarios</span>
+        <MockImage variant={post.imageVariant} />
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button type="button" className="flex items-center gap-1.5 text-[#ff9bbb]">
+              <HeartIcon className="h-[21px] w-[21px]" filled />
+            </button>
+
+            <button type="button" className="flex items-center gap-1.5 text-[#d7c8d8]">
+              <CommentIcon className="h-[21px] w-[21px]" />
+            </button>
+
+            <button type="button" className="flex items-center gap-1.5 text-[#d7c8d8]">
+              <ShareIcon className="h-[20px] w-[20px]" />
+            </button>
+          </div>
+
+          <button type="button" className="text-[#d7c8d8]">
+            <BookmarkIcon className="h-[20px] w-[20px]" />
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-3 text-xs text-[#b5a8b7]">
+          <span className="font-medium text-[#f3e6ef]">{post.likes} Me gusta</span>
+          <span>·</span>
+          <span>{post.comments} comentarios</span>
+        </div>
       </div>
     </article>
   );
@@ -353,13 +250,13 @@ function BottomNav() {
     { id: "home", label: "Inicio", active: true, icon: HomeIcon },
     { id: "albums", label: "Álbumes", active: false, icon: GridIcon },
     { id: "stories", label: "Historias", active: false, icon: PlayIcon },
-    { id: "memories", label: "Recuerdos", active: false, icon: HeartIcon },
+    { id: "memories", label: "Recuerdos", active: false, icon: HeartOutlineIcon },
     { id: "profile", label: "Perfil", active: false, icon: UserIcon },
   ];
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
-      <nav className="pointer-events-auto w-full max-w-[430px] rounded-[28px] border border-white/10 bg-[rgba(19,13,27,0.88)] px-3 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+      <nav className="pointer-events-auto w-full max-w-[430px] rounded-[26px] border border-white/10 bg-[rgba(14,10,19,0.84)] px-2 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
         <ul className="grid grid-cols-5 gap-1">
           {items.map((item) => {
             const Icon = item.icon;
@@ -371,11 +268,11 @@ function BottomNav() {
                   className={cn(
                     "flex w-full flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2.5 transition",
                     item.active
-                      ? "bg-[linear-gradient(180deg,rgba(255,184,211,0.18),rgba(185,133,255,0.14))] text-[#ffd7e8]"
-                      : "text-[#9f92a5] hover:bg-white/[0.04]"
+                      ? "bg-[linear-gradient(180deg,rgba(255,159,197,0.16),rgba(176,126,255,0.14))] text-[#ffd9ea]"
+                      : "text-[#96899c] hover:bg-white/[0.04]"
                   )}
                 >
-                  <Icon className="h-[19px] w-[19px]" />
+                  <Icon className="h-[18px] w-[18px]" />
                   <span className="text-[10px] font-medium">{item.label}</span>
                 </button>
               </li>
@@ -399,10 +296,10 @@ function HomeIcon({ className }: { className?: string }) {
 function GridIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <rect x="4" y="4" width="7" height="7" rx="1.5" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+      <rect x="4" y="4" width="7" height="7" rx="1.6" />
+      <rect x="13" y="4" width="7" height="7" rx="1.6" />
+      <rect x="4" y="13" width="7" height="7" rx="1.6" />
+      <rect x="13" y="13" width="7" height="7" rx="1.6" />
     </svg>
   );
 }
@@ -416,14 +313,6 @@ function PlayIcon({ className }: { className?: string }) {
   );
 }
 
-function HeartIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <path d="M12 20.5s-7-4.35-9.5-8.19C.76 9.63 2.3 6 5.83 6c2.02 0 3.31 1.08 4.17 2.3C10.86 7.08 12.15 6 14.17 6 17.7 6 19.24 9.63 21.5 12.31 19 16.15 12 20.5 12 20.5Z" />
-    </svg>
-  );
-}
-
 function UserIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
@@ -433,13 +322,72 @@ function UserIcon({ className }: { className?: string }) {
   );
 }
 
+function HeartIcon({
+  className,
+  filled,
+}: {
+  className?: string;
+  filled?: boolean;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={className}
+    >
+      <path d="M12 20.5s-7-4.35-9.5-8.19C.76 9.63 2.3 6 5.83 6c2.02 0 3.31 1.08 4.17 2.3C10.86 7.08 12.15 6 14.17 6 17.7 6 19.24 9.63 21.5 12.31 19 16.15 12 20.5 12 20.5Z" />
+    </svg>
+  );
+}
+
+function HeartOutlineIcon({ className }: { className?: string }) {
+  return <HeartIcon className={className} />;
+}
+
+function CommentIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M7 17.5H5a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8.7a2 2 0 0 1-2 2h-6.4L8 21v-3.5Z" />
+    </svg>
+  );
+}
+
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M21 4 11 14" />
+      <path d="M21 4 14.5 20l-3.9-6.1L4.5 10 21 4Z" />
+    </svg>
+  );
+}
+
+function BookmarkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-3.9L6 21V4.8Z" />
+    </svg>
+  );
+}
+
+function DotsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="12" cy="5" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="12" cy="19" r="1.8" />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [composerText, setComposerText] = useState("");
-  const [posts] = useState<PostItem[]>(initialPosts);
+  const [posts] = useState(postsMock);
 
-  const activeStoryCount = useMemo(() => stories.length, []);
+  const topStories = useMemo(() => storiesMock, []);
 
   useEffect(() => {
     let mounted = true;
@@ -455,9 +403,7 @@ export default function HomePage() {
           return;
         }
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 
@@ -476,163 +422,148 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#09060d] text-[#f7eef7]">
-        <div className="mx-auto flex min-h-screen max-w-[430px] items-center justify-center px-6">
-          <div className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-[#d7cad8] backdrop-blur-xl">
+      <AppShell>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-[#d8ccda] backdrop-blur-xl">
             Cargando espacio...
           </div>
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#09060d] text-[#f7eef7]">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(71,40,91,0.55),transparent_34%),radial-gradient(circle_at_bottom,rgba(36,18,50,0.75),transparent_36%),linear-gradient(180deg,#09060d_0%,#0e0913_45%,#09060d_100%)]" />
-        <div className="absolute left-[-80px] top-[90px] h-56 w-56 rounded-full bg-[#a265ff]/10 blur-3xl" />
-        <div className="absolute right-[-60px] top-[200px] h-52 w-52 rounded-full bg-[#ff96c2]/10 blur-3xl" />
-        <div className="absolute bottom-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#8f7cff]/8 blur-3xl" />
-      </div>
-
-      <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-4 pb-28 pt-4">
-        <header className="sticky top-0 z-30 -mx-1 mb-4 rounded-[28px] border border-white/8 bg-[rgba(17,12,24,0.72)] px-4 py-4 shadow-[0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.26em] text-[#ae96b6]">
-                red social privada
-              </p>
-              <h1 className="mt-2 text-[30px] font-semibold leading-none tracking-[-0.04em] text-[#fff7fb]">
-                Nuestro espacio
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <AppIconButton>
-                <svg
-                  width="19"
-                  height="19"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="3.2" />
-                  <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .9 1.7 1.7 0 0 0-.15.68V21a2 2 0 1 1-4 0v-.12A1.7 1.7 0 0 0 8.8 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.9-1 1.7 1.7 0 0 0-.68-.15H3a2 2 0 1 1 0-4h.12A1.7 1.7 0 0 0 4.6 8.8a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.8 4.6a1.7 1.7 0 0 0 1-.9 1.7 1.7 0 0 0 .15-.68V3a2 2 0 1 1 4 0v.12A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.8a1.7 1.7 0 0 0 .9 1 1.7 1.7 0 0 0 .68.15H21a2 2 0 1 1 0 4h-.12a1.7 1.7 0 0 0-1.48 1.05Z" />
-                </svg>
-              </AppIconButton>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-2xl border border-white/8 bg-white/[0.05] px-3.5 py-3 text-xs font-medium text-[#ead6e7] backdrop-blur-md transition hover:bg-white/[0.08]"
-              >
-                Salir
-              </button>
-            </div>
+    <AppShell>
+      <header className="sticky top-0 z-30 mb-4 rounded-[26px] border border-white/8 bg-[rgba(15,11,20,0.72)] px-4 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[#ac98b6]">
+              red social privada
+            </p>
+            <h1 className="mt-2 text-[28px] font-semibold leading-none tracking-[-0.04em] text-[#fff7fb]">
+              Nuestro espacio
+            </h1>
           </div>
-        </header>
 
-        <section className="mb-5">
-          <div className="mb-3 flex items-center justify-between px-1">
-            <div>
-              <h2 className="text-[15px] font-semibold text-[#fff3fa]">
-                Historias
-              </h2>
-              <p className="mt-1 text-[12px] text-[#9f92a5]">
-                {activeStoryCount} momentos recientes
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <IconButton>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="3.2" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .9 1.7 1.7 0 0 0-.15.68V21a2 2 0 1 1-4 0v-.12A1.7 1.7 0 0 0 8.8 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.9-1 1.7 1.7 0 0 0-.68-.15H3a2 2 0 1 1 0-4h.12A1.7 1.7 0 0 0 4.6 8.8a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.8 4.6a1.7 1.7 0 0 0 1-.9 1.7 1.7 0 0 0 .15-.68V3a2 2 0 1 1 4 0v.12A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.8a1.7 1.7 0 0 0 .9 1 1.7 1.7 0 0 0 .68.15H21a2 2 0 1 1 0 4h-.12a1.7 1.7 0 0 0-1.48 1.05Z" />
+              </svg>
+            </IconButton>
 
             <button
               type="button"
-              className="text-[12px] font-medium text-[#d7b2ff]"
+              onClick={handleLogout}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-xs font-medium text-[#e9ddea] backdrop-blur-md transition hover:bg-white/[0.08]"
             >
-              Ver todo
+              Salir
             </button>
           </div>
+        </div>
+      </header>
 
-          <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-            {stories.map((story) => (
-              <StoryRing key={story.id} item={story} />
-            ))}
+      <section className="mb-4">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h2 className="text-[15px] font-semibold text-[#fff6fb]">
+            Historias recientes
+          </h2>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-[#cbbfd0]"
+            >
+              +
+            </button>
           </div>
-        </section>
+        </div>
 
-        <section className="mb-5 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(28,20,36,0.96),rgba(18,13,25,0.98))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="rounded-full bg-gradient-to-br from-[#ffb9cb] via-[#d89cff] to-[#8a7bff] p-[2px]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#120d18]">
-                <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),rgba(255,255,255,0.02))] text-sm font-semibold text-[#fff5fb]">
-                  A
-                </div>
+        <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+          {topStories.map((story) => (
+            <StoryAvatar
+              key={story.id}
+              name={story.name}
+              active={story.active}
+              seen={story.seen}
+              own={story.own}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-5 rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(24,17,31,0.96),rgba(16,11,22,0.98))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur-xl">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="rounded-full bg-[linear-gradient(135deg,#ff96bf_0%,#ca96ff_52%,#7f89ff_100%)] p-[2px]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#120e17]">
+              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),rgba(255,255,255,0.02)),linear-gradient(180deg,rgba(46,32,56,1),rgba(23,17,30,1))] text-sm font-semibold text-[#fff5fb]">
+                A
               </div>
             </div>
-
-            <div>
-              <p className="text-sm font-semibold text-[#fff7fb]">Agus</p>
-              <p className="text-xs text-[#a99baa]">Compartí algo íntimo</p>
-            </div>
           </div>
 
-          <div className="rounded-[22px] border border-white/8 bg-white/[0.04] p-3 shadow-inner shadow-black/20">
-            <textarea
-              value={composerText}
-              onChange={(e) => setComposerText(e.target.value)}
-              placeholder="¿Qué querés compartir hoy?"
-              className="min-h-[106px] w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-7 text-[#f3eaf2] outline-none placeholder:text-[#8f828f]"
-            />
+          <div>
+            <p className="text-sm font-semibold text-[#fff7fb]">Crear publicación</p>
+            <p className="text-xs text-[#9f92a5]">Compartí un momento íntimo</p>
           </div>
+        </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d7c8d6]"
-              >
-                Foto
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d7c8d6]"
-              >
-                Álbum
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d7c8d6]"
-              >
-                Historia
-              </button>
-            </div>
+        <div className="rounded-[22px] border border-white/8 bg-white/[0.04] px-4 py-3 shadow-inner shadow-black/25">
+          <input
+            value={composerText}
+            onChange={(e) => setComposerText(e.target.value)}
+            placeholder="¿Qué querés compartir hoy?"
+            className="w-full bg-transparent text-[15px] text-[#f4ebf3] outline-none placeholder:text-[#8d818f]"
+          />
+        </div>
 
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-[18px] bg-[linear-gradient(135deg,#d596b6,#9e79ff)] px-4 py-2.5 text-sm font-semibold text-[#140d18] shadow-[0_12px_30px_rgba(189,127,255,0.28)] transition hover:brightness-105"
+              className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d8c9d7]"
             >
-              Publicar
+              Foto
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d8c9d7]"
+            >
+              Álbum
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-[#d8c9d7]"
+            >
+              Historia
             </button>
           </div>
-        </section>
 
-        <section className="flex-1">
-          <div className="mb-4 px-1">
-            <h2 className="text-[15px] font-semibold text-[#fff3fa]">Feed</h2>
-            <p className="mt-1 text-[12px] text-[#9f92a5]">
-              Tus momentos compartidos
-            </p>
-          </div>
+          <button
+            type="button"
+            className="rounded-[18px] bg-[linear-gradient(135deg,#f0a2c2,#b384ff)] px-4 py-2.5 text-sm font-semibold text-[#170f1d] shadow-[0_12px_30px_rgba(189,127,255,0.26)] transition hover:brightness-105"
+          >
+            Publicar
+          </button>
+        </div>
+      </section>
 
-          <div className="space-y-5">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
-        </section>
-      </div>
+      <section className="space-y-5">
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))}
+      </section>
 
       <BottomNav />
-    </main>
+    </AppShell>
   );
 }
