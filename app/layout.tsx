@@ -1,28 +1,31 @@
 import { AuthProvider } from '@/components/AuthContext';
-import type { Metadata } from 'next';
-import { Cormorant_Garamond, Inter } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'Feliz cumpleaños, mi amor',
-  description: 'Una experiencia romántica creada especialmente como regalo de cumpleaños.',
+  title: 'Nuestro Espacio',
+  description: 'Tu red social privada.',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#08060f',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased`}>
+    <html lang="es" className="bg-background">
+      <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

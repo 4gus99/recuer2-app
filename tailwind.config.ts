@@ -10,28 +10,44 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        blush: '#f1d7d5',
-        peach: '#f4ddd2',
-        cream: '#fff9f5',
-        sand: '#eadfd6',
-        wine: '#8b5a67',
-        cocoa: '#5b464d',
-        rosewood: '#a56a77'
+        background: '#08060f',
+        surface: '#110e1e',
+        'surface-raised': '#1a1528',
+        plum: '#2d1f45',
+        pink: {
+          soft: '#e8a4c8',
+          deep: '#c96fa8',
+          muted: '#a0587e',
+        },
+        lavender: {
+          DEFAULT: '#b89ee0',
+          muted: '#8b7ab5',
+          dark: '#5c4d8a',
+        },
+        foreground: '#f0eaf8',
+        secondary: '#9b90b8',
+        muted: '#5c5280',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-serif)', 'Georgia', 'serif']
+        sans: ['var(--font-sans)', '-apple-system', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
       },
       boxShadow: {
-        soft: '0 20px 60px rgba(117, 87, 96, 0.12)',
-        glass: '0 12px 40px rgba(113, 76, 86, 0.12)'
+        card: '0 4px 32px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.06)',
+        'glow-pink': '0 0 24px rgba(201,111,168,0.2), 0 0 48px rgba(201,111,168,0.08)',
+        'glow-lavender': '0 0 20px rgba(184,158,224,0.15)',
+      },
+      borderRadius: {
+        '2xl': '1.125rem',
+        '3xl': '1.5rem',
+        '4xl': '2rem',
       },
       backgroundImage: {
-        'romantic-radial': 'radial-gradient(circle at top, rgba(255,255,255,0.95), rgba(255,249,245,0.78) 32%, rgba(241,215,213,0.50) 100%)'
-      }
-    }
+        'pink-lavender': 'conic-gradient(from 0deg, #e8a4c8, #b89ee0, #c96fa8, #8b7ab5, #e8a4c8)',
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };
 
 export default config;
