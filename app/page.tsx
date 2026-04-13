@@ -4,7 +4,6 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getMyActiveSpace } from "@/lib/space";
-import { PhotoUploadSection } from "@/components/PhotoUploadSection";
 
 type FeedPost = {
   id: string;
@@ -160,6 +159,7 @@ export default function HomePage() {
     index: number;
   }) {
     const { userId, postId, file, index } = params;
+
     const extension = file.name.includes(".")
       ? file.name.split(".").pop()?.toLowerCase() ?? "jpg"
       : "jpg";
@@ -220,13 +220,15 @@ export default function HomePage() {
       return;
     }
 
-    const mediaRows: FeedPostMediaInsert[] = uploadedPaths.map((filePath, index) => ({
-      post_id: postId,
-      uploaded_by: userId,
-      file_path: filePath,
-      caption: null,
-      sort_order: index,
-    }));
+    const mediaRows: FeedPostMediaInsert[] = uploadedPaths.map(
+      (filePath, index) => ({
+        post_id: postId,
+        uploaded_by: userId,
+        file_path: filePath,
+        caption: null,
+        sort_order: index,
+      })
+    );
 
     const { error: mediaError } = await supabase
       .from("feed_post_media")
@@ -384,15 +386,16 @@ export default function HomePage() {
 
             <button
               type="submit"
-              disabled={publishing || (!postText.trim() && selectedFiles.length === 0)}
+              disabled={
+                publishing ||
+                (!postText.trim() && selectedFiles.length === 0)
+              }
               className="rounded-xl bg-[#b9858b] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
             >
               {publishing ? "Publicando..." : "Publicar"}
             </button>
           </form>
         </section>
-
-        <PhotoUploadSection />
 
         {error ? (
           <div className="mb-6 rounded-2xl bg-red-100 p-4 text-red-700">
