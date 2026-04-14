@@ -19,9 +19,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (email: string, password: string) => {
-    const validEmail = 'pareja@amor.com';
-    const validPassword = 'mi_clave_secreta';
-    if (email === validEmail && password === validPassword) {
+    // Credenciales: amor@amor.com / amor
+    if (email === 'amor@amor.com' && password === 'amor') {
       localStorage.setItem('loggedIn', 'true');
       setLoggedIn(true);
       return true;

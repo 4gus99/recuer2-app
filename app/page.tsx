@@ -97,7 +97,10 @@ function LoginScreen() {
         </form>
 
         <p className="text-center text-[11px] text-muted mt-8">
-          Nuestro rincón privado ✨
+          Nuestro rincón privado
+        </p>
+        <p className="text-center text-[10px] text-muted/50 mt-2">
+          amor@amor.com / amor
         </p>
       </div>
     </div>
