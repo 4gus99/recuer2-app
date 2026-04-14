@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +15,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     async function checkSession() {
+      const supabase = getSupabaseClient();
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -31,6 +33,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    const supabase = getSupabaseClient();
 
     try {
       if (mode === "signup") {

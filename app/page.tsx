@@ -1,7 +1,7 @@
 "use client";
 
 import { HomeScreen } from "@/components/home/HomeScreen";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,8 @@ export default function HomePage() {
 
   useEffect(() => {
     async function checkSession() {
+      const supabase = getSupabaseClient();
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
