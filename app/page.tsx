@@ -7,12 +7,13 @@ import { Lock } from "lucide-react";
 
 function LoginScreen() {
   const { login } = useAuth();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(password);
+    const success = login(email, password);
     if (!success) {
       setError(true);
       setTimeout(() => setError(false), 2500);
@@ -50,7 +51,22 @@ function LoginScreen() {
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="glow-card rounded-2xl bg-surface border border-white/[0.06] overflow-hidden">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(false);
+              }}
+              placeholder="Tu email"
+              className="w-full bg-transparent px-5 py-4 text-[14px] text-foreground placeholder:text-muted focus:outline-none"
+              style={{ caretColor: "#e8a4c8" }}
+              autoComplete="email"
+            />
+          </div>
+
           <div className="glow-card rounded-2xl bg-surface border border-white/[0.06] overflow-hidden">
             <input
               type="password"
@@ -59,7 +75,7 @@ function LoginScreen() {
                 setPassword(e.target.value);
                 setError(false);
               }}
-              placeholder="Ingresá la contraseña"
+              placeholder="Contraseña"
               className="w-full bg-transparent px-5 py-4 text-[14px] text-foreground placeholder:text-muted focus:outline-none"
               style={{ caretColor: "#e8a4c8" }}
               autoComplete="current-password"

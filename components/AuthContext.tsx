@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 interface AuthContextType {
   loggedIn: boolean;
-  login: (password: string) => boolean;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
 }
 
@@ -18,9 +18,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoggedIn(stored === 'true');
   }, []);
 
-  const login = (password: string) => {
-    const secret = 'mi_clave_secreta';
-    if (password === secret) {
+  const login = (email: string, password: string) => {
+    const validEmail = 'pareja@amor.com';
+    const validPassword = 'mi_clave_secreta';
+    if (email === validEmail && password === validPassword) {
       localStorage.setItem('loggedIn', 'true');
       setLoggedIn(true);
       return true;
