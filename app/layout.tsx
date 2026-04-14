@@ -24,8 +24,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="bg-background">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="es" style={{ background: '#08060f' }}>
+      <body 
+        className={`${inter.variable} font-sans antialiased`}
+        style={{ 
+          background: '#08060f', 
+          color: '#f0eaf8',
+          minHeight: '100vh',
+        }}
+      >
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
