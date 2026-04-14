@@ -6,43 +6,34 @@ import { LogOut, Settings } from "lucide-react";
 export function HomeHeader() {
   const { logout } = useAuth();
 
-  function handleLogout() {
-    logout();
-  }
-
   return (
-    <header
-      className="sticky top-0 z-40 flex items-end justify-between px-4 pb-3 pt-12"
-      style={{
-        background: "linear-gradient(to bottom, #08060f 70%, transparent)",
-      }}
-    >
-      <div>
-        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-          Red Social Privada
-        </p>
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          Nuestro espacio
-        </h1>
-      </div>
+    <header className="sticky top-0 z-40 px-5 pt-14 pb-4 bg-gradient-to-b from-background via-background/95 to-transparent">
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-lavender-muted mb-1">
+            Red Social Privada
+          </p>
+          <h1 className="text-[28px] font-bold text-foreground tracking-tight leading-none">
+            Nuestro espacio
+          </h1>
+        </div>
 
-      <div className="flex items-center gap-2 pb-1">
-        <button
-          aria-label="Configuración"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-secondary transition-colors hover:text-foreground"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-        >
-          <Settings size={17} strokeWidth={1.8} />
-        </button>
+        <div className="flex items-center gap-2 pb-0.5">
+          <button
+            aria-label="Configuración"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-raised/60 border border-white/5 text-secondary hover:text-foreground hover:bg-surface-raised transition-all active:scale-95"
+          >
+            <Settings size={18} strokeWidth={1.8} />
+          </button>
 
-        <button
-          aria-label="Cerrar sesión"
-          onClick={handleLogout}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-secondary transition-colors hover:text-pink-soft"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-        >
-          <LogOut size={17} strokeWidth={1.8} />
-        </button>
+          <button
+            aria-label="Cerrar sesión"
+            onClick={logout}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-raised/60 border border-white/5 text-secondary hover:text-pink-soft hover:bg-surface-raised transition-all active:scale-95"
+          >
+            <LogOut size={18} strokeWidth={1.8} />
+          </button>
+        </div>
       </div>
     </header>
   );

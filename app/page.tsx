@@ -1,80 +1,99 @@
 "use client";
 
-import { HomeScreen } from "@/components/home/HomeScreen";
-import { useAuth } from "@/components/AuthContext";
 import { useState } from "react";
+import { useAuth } from "@/components/AuthContext";
+import { HomeScreen } from "@/components/home/HomeScreen";
+import { Lock } from "lucide-react";
 
-function LoginGate() {
+function LoginScreen() {
   const { login } = useAuth();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = login(password);
-    if (!ok) setError(true);
+    const success = login(password);
+    if (!success) {
+      setError(true);
+      setTimeout(() => setError(false), 2500);
+    }
   };
 
   return (
-    <div
-      className="min-h-screen w-full flex flex-col items-center justify-center px-6"
-      style={{ background: "#08060f" }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-background">
       {/* Ambient glow */}
       <div
-        aria-hidden
-        className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 opacity-20 blur-3xl"
-        style={{ background: "radial-gradient(circle, #c96fa8 0%, transparent 70%)" }}
+        aria-hidden="true"
+        className="pointer-events-none fixed top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 opacity-20 blur-3xl"
+        style={{
+          background: "radial-gradient(circle, #c96fa8 0%, transparent 70%)",
+        }}
       />
 
       <div className="w-full max-w-xs relative z-10">
-        <p className="text-center text-[10px] font-semibold tracking-[0.22em] uppercase text-muted mb-2">
-          Red Social Privada
-        </p>
-        <h1 className="text-center text-[28px] font-semibold text-foreground mb-1">
-          Nuestro espacio
-        </h1>
-        <p className="text-center text-[13px] text-secondary mb-10">
-          Solo para nosotros dos.
-        </p>
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-20 h-20 rounded-full gradient-ring p-[3px] mb-6 shadow-glow-pink">
+            <div className="w-full h-full rounded-full bg-surface flex items-center justify-center">
+              <Lock size={32} className="text-pink-soft" strokeWidth={1.8} />
+            </div>
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-lavender-muted mb-2">
+            Red Social Privada
+          </p>
+          <h1 className="text-[30px] font-bold text-foreground tracking-tight">
+            Nuestro espacio
+          </h1>
+          <p className="text-[13px] text-secondary mt-1">
+            Solo para nosotros dos.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError(false); }}
-            className="w-full px-4 py-3.5 rounded-2xl text-[14px] text-foreground placeholder:text-muted outline-none"
-            style={{
-              background: "#110e1e",
-              border: error
-                ? "1px solid rgba(232,164,200,0.5)"
-                : "1px solid rgba(255,255,255,0.07)",
-              caretColor: "#e8a4c8",
-            }}
-          />
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="glow-card rounded-2xl bg-surface border border-white/[0.06] overflow-hidden">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(false);
+              }}
+              placeholder="Ingresá la contraseña"
+              className="w-full bg-transparent px-5 py-4 text-[14px] text-foreground placeholder:text-muted focus:outline-none"
+              style={{ caretColor: "#e8a4c8" }}
+              autoComplete="current-password"
+            />
+          </div>
+
           {error && (
-            <p className="text-[12px] text-center" style={{ color: "#e8a4c8" }}>
-              Contraseña incorrecta. Intentá de nuevo.
+            <p className="text-center text-[13px] text-pink-soft animate-pulse">
+              Contraseña incorrecta
             </p>
           )}
+
           <button
             type="submit"
-            className="w-full py-3.5 rounded-2xl text-[14px] font-semibold text-white transition-opacity active:opacity-80"
-            style={{
-              background: "linear-gradient(135deg, #c96fa8, #8b7ab5)",
-              boxShadow: "0 0 24px rgba(201,111,168,0.3)",
-            }}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-deep to-lavender text-white text-[14px] font-semibold shadow-glow-pink hover:opacity-90 active:scale-[0.98] transition-all"
           >
             Entrar
           </button>
         </form>
+
+        <p className="text-center text-[11px] text-muted mt-8">
+          Nuestro rincón privado ✨
+        </p>
       </div>
     </div>
   );
 }
 
-export default function HomePage() {
+export default function Page() {
   const { loggedIn } = useAuth();
-  return loggedIn ? <HomeScreen /> : <LoginGate />;
+
+  if (!loggedIn) {
+    return <LoginScreen />;
+  }
+
+  return <HomeScreen />;
 }

@@ -1,50 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { Camera, Images, BookOpen, Send } from "lucide-react";
+import { Camera, Images, Clock } from "lucide-react";
 
-const ACTION_CHIPS = [
+const actionChips = [
   { id: "foto", icon: Camera, label: "Foto" },
   { id: "album", icon: Images, label: "Álbum" },
-  { id: "historia", icon: BookOpen, label: "Historia" },
+  { id: "historia", icon: Clock, label: "Historia" },
 ];
 
 export function PostComposer() {
   const [text, setText] = useState("");
 
   return (
-    <section className="px-4 pb-3">
-      <div
-        className="rounded-3xl p-4 shadow-card"
-        style={{
-          background: "#110e1e",
-          border: "1px solid rgba(255,255,255,0.06)",
-          boxShadow: "0 4px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
-        }}
-      >
-        {/* Top row */}
-        <div className="flex items-center gap-3 mb-3">
-          {/* Avatar */}
-          <div
-            className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-semibold"
-            style={{
-              background: "conic-gradient(from 0deg, #e8a4c8, #b89ee0, #c96fa8, #8b7ab5, #e8a4c8)",
-              padding: "2px",
-            }}
-          >
-            <div
-              className="w-full h-full rounded-full flex items-center justify-center"
-              style={{ background: "#110e1e" }}
-            >
-              <span className="text-[12px] font-bold" style={{ color: "#e8a4c8" }}>AG</span>
-            </div>
+    <section className="px-5 py-2">
+      <div className="glow-card rounded-[28px] bg-surface p-5 border border-white/[0.06]">
+        {/* Header */}
+        <div className="flex items-start gap-4 mb-4">
+          <div className="w-11 h-11 rounded-full gradient-ring p-[2px] flex-shrink-0">
+            <img
+              src="/images/gallery-1.jpg"
+              alt="Tu avatar"
+              className="w-full h-full rounded-full object-cover"
+            />
           </div>
-
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-foreground leading-none mb-0.5">
+          <div className="pt-0.5">
+            <h3 className="text-[15px] font-semibold text-foreground leading-tight">
               Crear publicación
-            </p>
-            <p className="text-[11px] text-muted leading-none">
+            </h3>
+            <p className="text-[12px] text-secondary mt-0.5">
               Compartí un momento íntimo
             </p>
           </div>
@@ -56,40 +40,25 @@ export function PostComposer() {
           onChange={(e) => setText(e.target.value)}
           placeholder="¿Qué querés compartir hoy?"
           rows={3}
-          className="w-full resize-none rounded-2xl px-4 py-3 text-[14px] leading-relaxed text-foreground placeholder:text-muted outline-none"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            caretColor: "#e8a4c8",
-          }}
+          className="w-full bg-surface-raised/70 rounded-2xl px-4 py-3.5 text-[14px] text-foreground placeholder:text-muted resize-none border border-white/[0.06] focus:border-lavender-muted/40 focus:outline-none transition-colors leading-relaxed"
+          style={{ caretColor: "#e8a4c8" }}
         />
 
-        {/* Actions row */}
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-2">
-            {ACTION_CHIPS.map(({ id, icon: Icon, label }) => (
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-4 gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {actionChips.map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
-                aria-label={label}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-secondary text-[12px] font-medium hover:text-foreground transition-colors"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-raised/80 border border-white/[0.06] text-secondary text-[12px] font-medium hover:bg-plum/50 hover:text-foreground hover:border-lavender-muted/20 transition-all active:scale-95"
               >
-                <Icon size={13} strokeWidth={2} />
-                {label}
+                <Icon size={14} strokeWidth={2} />
+                <span>{label}</span>
               </button>
             ))}
           </div>
 
-          <button
-            aria-label="Publicar"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold transition-opacity active:opacity-80"
-            style={{
-              background: "linear-gradient(135deg, #c96fa8, #8b7ab5)",
-              color: "#fff",
-              boxShadow: "0 0 18px rgba(201,111,168,0.3)",
-            }}
-          >
-            <Send size={13} strokeWidth={2} />
+          <button className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-pink-deep to-lavender text-white text-[13px] font-semibold shadow-glow-pink hover:opacity-90 active:scale-95 transition-all">
             Publicar
           </button>
         </div>
