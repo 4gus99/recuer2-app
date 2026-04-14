@@ -112,7 +112,15 @@ function LoginScreen() {
 }
 
 export default function Page() {
-  const { loggedIn } = useAuth();
+  const { loggedIn, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 rounded-full border-2 border-pink-soft border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   if (!loggedIn) {
     return <LoginScreen />;

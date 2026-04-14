@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 interface AuthContextType {
   loggedIn: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => boolean;
   logout: () => void;
 }
@@ -12,10 +13,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('loggedIn') : null;
+    const stored = localStorage.getItem('loggedIn');
     setLoggedIn(stored === 'true');
+    setIsLoading(false);
   }, []);
 
   const login = (email: string, password: string) => {
@@ -33,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoggedIn(false);
   };
 
-  return <AuthContext.Provider value={{ loggedIn, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ loggedIn, isLoading, login, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
