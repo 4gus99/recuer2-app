@@ -11,9 +11,13 @@ function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
 
+  console.log("[v0] LoginScreen mounted, JS is working!");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[v0] Login attempt with:", email, password);
     const success = login(email, password);
+    console.log("[v0] Login result:", success);
     if (!success) {
       setError(true);
       setTimeout(() => setError(false), 2500);
